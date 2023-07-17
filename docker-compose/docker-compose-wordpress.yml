@@ -1,0 +1,41 @@
+version: "3"
+
+#Create a n/w for containers to talk to each other
+networks:
+  wordpress-net:
+    name: wordpress-net
+    driver: bridge
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: course-mysql
+    volumes:
+      - ./docker-data/mysql:/var/lib/mysql
+    restart: always
+    # Environment is environment variable to be injected on container.
+    environment:
+      MYSQL_ROOT_PASSWORD: somewordpressroot
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    networks:
+      - wordpress-net
+
+  wordpress:
+    image: wordpress:latest
+    container_name: course-wordpress
+    volumes:
+      - ./docker-data/wordpress:/var/www/html
+    restart: always
+    ports:
+      - "8000:80"
+    environment:
+      WORDPRESS_DB_HOST: mysql
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    networks:
+      - wordpress-net
+    depends_on:
+      - mysql
