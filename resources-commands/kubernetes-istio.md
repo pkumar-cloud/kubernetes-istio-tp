@@ -596,7 +596,7 @@ kubectl apply -f devops-monitoring.yml
 minikube tunnel
 ```
 
-## Ingress Nginx Combination
+## Ingress Nginx Combination - Advance use cases
 
 ### Official Documentation
   - [Nginx ingress annotation](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations)
@@ -666,6 +666,10 @@ kubectl get hpa -n devops
 ## Stateful Set
 
 ```bash
+cd kubernetes-istio-scripts/kubernetes/stateful-set
+kubectl apply -f ...
+Postman -> Stateful set
+Alternate:
 kubectl port-forward -n devops devops-stateful-set-main-0 9110:8111
 kubectl port-forward -n devops devops-stateful-set-main-1 9111:8111
 kubectl port-forward -n devops devops-stateful-set-main-2 9112:8111
