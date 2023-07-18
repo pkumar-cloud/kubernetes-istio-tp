@@ -455,7 +455,7 @@ Or, use [OpenSSL](https://www.openssl.org/)
 - Self-signed certificate is not trusted by most apps, so if we use Postman or browser, we need to disable validation later. To generate self-signed certificate, we can use openssl, or online tools.
 
 ```bash
-Create self signed cert for "api.devops.local" and download private key and crt file.
+# Create self signed cert for "api.devops.local" and download private key and crt file.
 cd kubernetes-istio-scripts/kubernetes/ingress-tls
 Postman: Ingress - Nginx TLS
 # Generate K8s secret for TLS certificate, will create secret with type TLS
