@@ -23,7 +23,7 @@ controller:
         release: prometheus
     
   # https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/monitoring.md
-  # enable the monitoring integration with kube prometheus stack
+  # to enable the monitoring integration with kube prometheus stack
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "10254"

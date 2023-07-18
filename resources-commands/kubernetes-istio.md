@@ -464,18 +464,26 @@ kubectl apply -f ..
 ```
 
 ## Introducing Helm
-  - [Artifact hub](https://artifacthub.io/)
-  - [Ingress Nginx](https://kubernetes.github.io/ingress-nginx/deploy/#quick-start)
+
+- [Artifact hub](https://artifacthub.io/)
+  - Install Jekins to test
+- [Ingress Nginx](https://kubernetes.github.io/ingress-nginx/deploy/#quick-start)
+
 
 ```bash
 # Install nginx ingress controller using helm
+# disable minikube addon first
+minikube addons disable ingress
+# Follow above Ingress Nginx link
 helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace
+minikube tunnel 
+kubectl get po -n ingress-nginx
 ```
 
 
 ## Sealed Secret
 
- Full documentation [here](https://github.com/bitnami-labs/sealed-secrets).
+Full documentation [here](https://github.com/bitnami-labs/sealed-secrets).
 
 ### Installing kubeseal
 [Non Windows](https://github.com/bitnami-labs/sealed-secrets#installation)
@@ -484,11 +492,15 @@ To extract tar.gz file on Windows, use tools like [7zip](https://www.7-zip.org/)
 
 ### Syntax
  ```bash
-# Install sealed secret via helm
+# Install sealed secret via helm on K8S cluster
 helm upgrade --install sealed-secrets sealed-secrets --set-string fullnameOverride=sealed-secrets-controller --repo https://bitnami-labs.github.io/sealed-secrets --namespace kube-system
 
+# Download kubeseal from above bitnami github link and go to dir
+cd kubeseal
+copy the my-config-file.yml file here 
+
 # Create secret, output it only at terminal (not upload to kubernetes cluster)
-kubectl create secret generic my-secret -n devops -o yaml --dry-run=client --from-file [path to my-config-file.yml]
+kubectl create secret generic my-secret -n devops -o yaml --dry-run=client --from-file [path to my-config-file.yml]  => Save it as my-secret-file.yml file
 
 # Port forward the sealed secret service to port 8899
 kubectl port-forward -n kube-system service/sealed-secrets-controller 8899:8080
@@ -503,7 +515,11 @@ kubeseal -flag < [path-to-input-secret-file] > [path-to-output-sealed-secret-fil
 kubeseal --cert mycert.pem -o yaml < my-secret-file.yml > my-sealed-secret-file.yml
 
 # Apply the sealed secret
-kubectl apply -f my-sealed-secret-file.yml
+kubectl apply -f my-sealed-secret-file.yml #only way to read the secret using k8s secret now
+
+kubectl get secret -n devops -o json my-secret # will get base64 encoded value
+
+PostMan: Configmap / Secret -> Sealed secret
  ```
 
 
@@ -521,9 +537,26 @@ minikube addons enable metrics-server
 
 # Enable ingress
 minikube addons enable ingress
-```
+kubectl get pod -n ingress-nginx
 
-## Resource Monitoring - Kube Prometheus Stack
+# Tunneling
+# Access via localhost/grafana    localhost/prometheus    localhost/alertmanager
+minikube tunnel
+
+cd kubernetes-istio-scripts/kubernetes/monitoring-metrics-server
+kubectl apply -f devops-monitoring.yml
+
+# There are two monitors available from metrics server.
+kubectl top node
+kubectl top pod
+
+# use Postman to simulate fake load
+Monitoring -> Fake load for 60 sec
+
+kubectl delete -f devops-monitoring.yml #to start fresh next section
+```
+## Resource Monitoring - Kube Prometheus Stack 
+- To see more visualized, historical resource usages, we can use Prometheus & Grafana.
 **NOTE : Kube prometheus stack might not works on local kubernetes (like minikube)**
 
 [Official documentation](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
@@ -532,17 +565,25 @@ minikube addons enable ingress
 # Enable metrics server
 minikube addons enable metrics-server
 
-# Enable ingress
+# Enable ingress or can use helm chart ingress controller
 minikube addons enable ingress
 
 # Installing kube-prometheus-stack via helm, with additional parameters. 
 # Run this in folder monitoring-kube-prometheus
+cd kubernetes-istio-scripts/kubernetes/monitoring-kube-prometheus
+kubectl apply -f devops-monitoring.yml
+
 helm upgrade --install my-kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts kube-prometheus-stack --namespace monitoring --create-namespace --values values-monitoring.yaml
+
+kubectl get po -n monitoring
 
 # Tunneling
 # Access via localhost/grafana    localhost/prometheus    localhost/alertmanager
 minikube tunnel
 
+# use Postman to simulate fake load
+Monitoring -> Fake load for 120 sec
+#Play with built-n grafan dahsboards
 # ----------------------------------------
 # Alternative (expose via port-forward)
 # Prometheus at localhost:9000
@@ -553,9 +594,11 @@ kubectl port-forward service/my-kube-prometheus-stack-grafana -n monitoring 3000
 
 # Alert manager at localhost:9093
 kubectl port-forward service/my-kube-prometheus-stack-alertmanager -n monitoring 9093:9093
+
+kubectl delete -f devops-monitoring.yml #to start fresh next section
 ```
 
-## Monitoring Ingress Nginx
+## Monitoring Nginx (Ingress) via Prometheus
 
 ```bash
 # Fresh start - delete minikube cluster
@@ -577,12 +620,15 @@ helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.git
 helm upgrade --install my-kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts kube-prometheus-stack --namespace monitoring --create-namespace
 
 # 5. Upgrade nginx installation. Run on folder monitoring-ingress-nginx
+cd kubernetes-istio-scripts/kubernetes/monitoring-ingress-nginx
+#Values-ingress-nginx is nginx configuration. We will re-configure the nginx installation using this configuration.
 helm upgrade ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --values values-ingress-nginx.yml
 
 # Optional : Check that nginx configured
 helm get values ingress-nginx --namespace ingress-nginx
 
 # 6. Upgrade kube-prometheus installation. Run on folder monitoring-ingress-nginx
+#values-kube-prometheus yaml is for kube-prometheus-stack configuration. We will re-configure the prometheus using this configuration. This will create ingress rules for prometheus and grafana so we can see them without using port forward.
 helm upgrade my-kube-prometheus-stack kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts --namespace monitoring --values values-kube-prometheus.yml
 
 # Optional : Check that prometheus is configured
@@ -592,8 +638,14 @@ helm get values my-kube-prometheus-stack --namespace monitoring
 kubectl apply -f devops-monitoring.yml
 
 # 8. Tunneling
-# Access via localhost/grafana    localhost/prometheus
+# Access via localhost/grafana    localhost/prometheus/graph
 minikube tunnel
+
+Import prebuilt dashboards from [grafana community](https://grafana.com/grafana/dashboards/)
+- NGINX Ingress controller #for the ingress controller status.
+- Kubernetes Nginx Ingress Prometheus NextGen #to find traffic status.
+
+Use Postman -> Ingress - Monitoring #Run the collection for many times. e.g. 10000 iterations @ 50 ms delay.
 ```
 
 ## Ingress Nginx Combination - Advance use cases
@@ -654,6 +706,7 @@ helm upgrade my-kube-prometheus-stack kube-prometheus-stack --repo https://prome
 minikube addons enable metrics-server
 
 # Apply the deployment sample
+cd kubernetes-istio-scripts/kubernetes/autoscaling
 kubectl apply -f devops-autoscaling.yml
 
 # Apply Horizontal Pod Autoscaler (HPA)
@@ -661,14 +714,26 @@ kubectl apply -f devops-hpa.yml
 
 # Examine HPA (migh take times for metric update)
 kubectl get hpa -n devops
+
+Postman -> Autoscaling #Run this endpoint with 1 CPU thread for 600 second.
 ```
 
 ## Stateful Set
 
 ```bash
 cd kubernetes-istio-scripts/kubernetes/stateful-set
-kubectl apply -f ...
+kubectl apply -f devops-deployment.yml
+kubectl get po,pv,pvc -n devops #verify 
+kubectl delete -f devops-deployment.yml
+
+kubectl apply -f devops-stateful-set.yml
+kubectl get po,pv,pvc -n devops #verify - only one pod will be created at a time.
+
+# to access statefulset via ingress
+kubectl apply -f devops-stateful-set-ingress.yml
+
 Postman -> Stateful set
+
 Alternate:
 kubectl port-forward -n devops devops-stateful-set-main-0 9110:8111
 kubectl port-forward -n devops devops-stateful-set-main-1 9111:8111
@@ -678,16 +743,27 @@ kubectl port-forward -n devops devops-stateful-set-main-2 9112:8111
 ## Stateful Set on Practice
 
 ```bash
+kubectl apply -f devops-rabbitmq.yml #have secret, contains password which is required to config rabbitmq
+#from artifacthub.io
+add rabbitmq.local to /etc/hosts
 helm upgrade --install my-rabbitmq rabbitmq --repo https://charts.bitnami.com/bitnami  --namespace rabbitmq --create-namespace --values values-rabbitmq.yml
 ```
 
 The URL is **http://rabbitmq.local/rabbitmq/** (it has **/** at the end)
+- Launch: rabbitmq.local/rabbitmq -> admin/password
+- Create a dummy queue of type Quorum, to replicate data across rabbitmq instances
+- publish 10 data to the queue, using publish message
+- Access each POD using below ports e.g. http://localhost:9220/rabbitmq/ #can see have 10 messages each 
+- change replica values-rabbitmq.yml and redploy release and verify data consistency
 
 ```bash
 kubectl port-forward -n rabbitmq my-rabbitmq-0 9220:15672
 kubectl port-forward -n rabbitmq my-rabbitmq-1 9221:15672
 kubectl port-forward -n rabbitmq my-rabbitmq-2 9222:15672
+
+helm upgrade --install my-rabbitmq rabbitmq --repo https://charts.bitnami.com/bitnami  --namespace rabbitmq --create-namespace --values values-rabbitmq.yml
 ```
+
 
 
 ## Namespace Quota

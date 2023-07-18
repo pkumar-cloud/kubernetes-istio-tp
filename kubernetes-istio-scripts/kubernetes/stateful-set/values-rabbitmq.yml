@@ -1,3 +1,4 @@
+#Configuration value as described in bitnami helm documentation
 replicaCount: 2
 
 auth:
