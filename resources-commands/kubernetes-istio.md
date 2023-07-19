@@ -764,17 +764,48 @@ kubectl port-forward -n rabbitmq my-rabbitmq-2 9222:15672
 helm upgrade --install my-rabbitmq rabbitmq --repo https://charts.bitnami.com/bitnami  --namespace rabbitmq --create-namespace --values values-rabbitmq.yml
 ```
 
+## Resource Quota
+```bash
+minikube start # default starts with 2 cpu and 4 gb
+cd kubernetes-istio-scripts/kubernetes/resources-request-limit
+kubectl apply -f devops-blue-invalid-one.yml # would fail
+kubectl apply -f devops-blue-invalid-two.yml # would be rejected
+kubectl apply -f devops-blue-invalid-three.yml #error, where the volume is not bound.
+
+```
 
 
 ## Namespace Quota
 [ResourceQuota reference](https://kubernetes.io/docs/concepts/policy/resource-quotas/)
+```bash
+cd kubernetes-istio-scripts/kubernetes/namespace-quota
+kubectl apply -f devops-resourcequota.yml #apply namespace quota
+kubectl apply -f devops-deployment.yml #only 4 pods will come up
+kubectl get resourcequota -n devops #see the resource limits of NS
+kubectl describe resourcequota -n devops <ResourceQuotaName>
+kubectl apply -f devops-pod.yml #error
 
+```
+## Service Account
+```bash
+cd kubernetes-istio-scripts/kubernetes/service-account
 
-## Private Repository
+```
+## security-context
+```bash
+cd kubernetes-istio-scripts/kubernetes/security-context
+Postman -> Security Context
+```
+
+## Private Repository - Create own docker private repo
 
 ```bash
-# Create secret for dockerhub
+kubectl create ns devops
+# Create secret for dockerhub. Unlike regular secret, docker credential requires specific type and data to be used.
 kubectl create secret docker-registry dockerhub-secret --docker-server=https://index.docker.io/v1/ --docker-username=[your-username] --docker-password=[your-password] --docker-email=[your-email]
+cd kubernetes-istio-scripts/kubernetes/private-repository
+kubectl apply -f 
+Postman -> Private Repository
 ```
 
 ## Helm Spring Boot Rest API 01

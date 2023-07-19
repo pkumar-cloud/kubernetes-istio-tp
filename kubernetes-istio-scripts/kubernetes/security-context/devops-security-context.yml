@@ -59,9 +59,9 @@ spec:
           # not exists, but does not matter since no process requires specific user id 
           runAsUser: 10000
           runAsGroup: 10000
-          readOnlyRootFilesystem: true
-          allowPrivilegeEscalation: false
-          capabilities:
+          readOnlyRootFilesystem: true #works only on container.
+          allowPrivilegeEscalation: false #works only on container. If true, Processes in privileged containers are essentially equivalent to root on the host.
+          capabilities: #works only on container. kernel level permissions, generally don’t actually require any capabilities in normal operation
             drop:
               - ALL
         volumeMounts:
