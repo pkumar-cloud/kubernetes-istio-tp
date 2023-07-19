@@ -825,6 +825,8 @@ helm upgrade --install helm-yellow-01 spring-boot-rest-api --namespace devops --
 
 # list helm
 helm list -n devops
+Postman: Helm - Spring Bot REST API
+helm uninstall -n devops helm-yellow-01
 ```
 
 
