@@ -823,9 +823,9 @@ helm template helm-yellow-01 spring-boot-rest-api --namespace devops --create-na
 # Install helm release
 helm upgrade --install helm-yellow-01 spring-boot-rest-api --namespace devops --create-namespace --values ..\kubernetes\helm-spring-boot-rest-api-01\values-spring-boot.yml
 
-# list helm
+#list helm
 helm list -n devops
-Postman: Helm - Spring Bot REST API
+Postman: Helm - Spring Boot REST API
 helm uninstall -n devops helm-yellow-01
 ```
 
