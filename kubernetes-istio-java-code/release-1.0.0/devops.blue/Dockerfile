@@ -22,5 +22,5 @@ ADD ${JAR_FILE} devops-blue.jar
 #Application runs on port 8111
 EXPOSE 8111
 
-# Run the jar file 
+# Run the jar file, will always executed when container started using this image.
 ENTRYPOINT ["java", "-jar", "devops-blue.jar"]

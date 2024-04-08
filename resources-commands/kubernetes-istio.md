@@ -105,6 +105,7 @@ kubectl get svc
 
 # [Minikube only] Show exposed url
 minikube service [service-name] --url
+minikube service my-nginx --url
 ```
   
 The `get` and `describe` can be used for many kubernetes resources.
@@ -141,6 +142,7 @@ kubectl create deployment my-devops-blue --image pndrns/devops-blue:1.0.0
 
 # Create service for nginx deployment
 kubectl expose deployment my-devops-blue --type LoadBalancer --port 8111 --name my-devops-blue-lb
+minikube tunnel
 
 # Describe service
 kubectl describe service my-devops-blue-lb
@@ -150,6 +152,7 @@ kubectl scale deployment my-devops-blue --replicas 3
 
 # See detailed pod info
 kubectl get pod -o wide
+curl http://localhost:8111/devops/blue/api/hello #Traffic will go to different pods
 
 ```
 

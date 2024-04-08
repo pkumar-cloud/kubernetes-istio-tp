@@ -31,7 +31,7 @@ docker run -d -p 8899:80 --name dancing_octopus nginx
 # Go to bash shell inside dancing_octopus container
 docker exec -it dancing_octopus bash
 
-# Copy file from host to smiling_whale, folder /usr/share/nginx/html/
+# Copy file from host to smiling_whale, folder /usr/share/nginx/html/ OR create a .HTML file
 # Make sure you go to folder where atlantis.html located, or define full path to atlantis.html
 docker cp atlantis.html smiling_whale:/usr/share/nginx/html/
 
@@ -57,6 +57,9 @@ docker run -d -p 8888:80 --name dancing_octopus -v d:/my-courses/nginx-html:/usr
 The java code and docker files are located under folder `kubernetes-istio\kubernetes-istio-java-code`, and in this part we use `release-1.0.0` sub-folder:
 
 ```bash
+# Install Java 17
+java -version
+
 # Build java from gradle (note the separator, use \ or / according to your operating system)
 # This is for windows OS (\) -> .\gradlew clean bootJar
 # From kubernetes-istio\kubernetes-istio-java-code\release-1.0.0\devops.blue
@@ -90,5 +93,16 @@ HelloAPI: http://localhost:8888/devops/blue/api/hello
 docker ps -a
 docker rm -f <CID>
 docker images
-docker image rm if <I-ID>
+docker image rm -f <I-ID>
+```
+# Docker Compose
+```bash
+# On Windows or Mac, docker compose automatically installed when you install docker. On Linux, you need to install docker compose.
+docker-compose version
+cd docker-compose
+docker-compose -f docker-compose-wordpress.yml up -d
+#  -f: specify which file to use, -d: run the containers at background
+# By default, docker compose engine will find file with name docker-compose.yml at current dir.
+localhost:8000
+docker-compose -f docker-compose-wordpress.yml down
 ```

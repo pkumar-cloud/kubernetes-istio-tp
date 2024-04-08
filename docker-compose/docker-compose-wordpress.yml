@@ -38,4 +38,4 @@ services:
     networks:
       - wordpress-net
     depends_on:
-      - mysql
+      - mysql #mysql container must be created first, then wordpress.
