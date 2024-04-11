@@ -142,7 +142,7 @@ kubectl create deployment my-devops-blue --image pndrns/devops-blue:1.0.0
 
 # Create service for nginx deployment
 kubectl expose deployment my-devops-blue --type LoadBalancer --port 8111 --name my-devops-blue-lb
-minikube tunnel
+minikube tunnel #Always keep it running on 2nd terminal
 
 # Describe service
 kubectl describe service my-devops-blue-lb
@@ -181,10 +181,13 @@ If you cannot access *http://localhost:8111/...* after one minute, try this:
 https://github.com/pkumar-cloud/kubernetes-istio-tp/tree/main/kubernetes-istio-scripts/kubernetes/declarative-hello
 
 # apply configuration
-kubectl apply -f path-to-config-file.yml
+kubectl apply -f ./kubernetes-istio-scripts/kubernetes/declarative-hello
+or
+kubectl apply -f ./kubernetes-istio-scripts/kubernetes/declarative-single-file
+kubectl get po --show-labels
 
 # delete configuration
-kubectl delete -f path-to-config-file.yml
+kubectl delete -f <path-to-config-file.yml>
 ```
 
 ----
@@ -198,7 +201,7 @@ kubectl delete -f path-to-config-file.yml
 - https://github.com/pkumar-cloud/kubernetes-istio-tp/tree/main/kubernetes-istio-scripts/kubernetes/label
 - Ports used: 9011 to 9014
 ```bash
-kubectl apply -f devops-label.yml
+kubectl apply -f ./kubernetes-istio-scripts/kubernetes/label
 curl http://localhost:9011-9014/devops/blue/api/hello #try with each service port
 kubectl delete -f devops-label.yml
 ```
@@ -218,14 +221,17 @@ curl http://localhost:9111/devops/blue/api/hello
 ## Health Check - Demo
 ```bash
 cd kubernetes-istio-scripts/kubernetes/health-check
+#All of the pods will be ready in at least 60 + 30 seconds
 Postman -> health-check
-
+kubectl delete -f 
 ```
 
 ## Log - Demo
 ```bash
 cd kubernetes-istio-scripts/kubernetes/log
+kubectl apply -f #or use the old deployment
 Postman -> Log
+#Display logs from all the pods
 kubectl logs -n devops --selector app.kubernetes.io/name=devops-log-pod
 ```
 
@@ -244,7 +250,7 @@ Download: k8slens.dev or brew install --cask lens
 
 ## Volume - Demo
 - cd kubernetes-istio-scripts/kubernetes/volume 
-- Postman -> Volume
+- Postman -> Volume (Upload image and check)
 - curl http://localhost:9011/devops/blue/api/images
 - curl http://localhost:9011/devops/blue/api/doc
 ### Empty Dir
@@ -265,15 +271,27 @@ kubectl exec -n devops [pod-name] -c devops-blue -ti bash
 # Run bin/sh (alpine linux shell) to alpine-linux container inside [pod-name]
 kubectl exec -n devops [pod-name] -c alpine-linux -ti /bin/sh
 
+#check for uploaded files under mount points from each POD. 
+
+kubectl delete -f devops-volume-empty-dir.yml
+
 ```
 
 ### Host Path
 
 ```bash
-# SSH into minikube
-minikube ssh
+kubectl apply -f devops-volume-host-path-minikube.yml
+minikube tunnel
+Postman: Volume -> upload image, upload doc and check
+#Then list the image and the doc.
+curl -v http://localhost:9011/devops/blue/api/images
 
-# Mount host directory to minikube, adjust according your own machine
+# SSH into minikube to explore the file storage
+minikube ssh
+cd /data/upload/minikube #Path of voulume
+ls
+
+# Mount host directory to minikube, So we can see the uploaded files from host. adjust according your own machine. 
 # Directory must exists
 # Example (Windows): minikube mount d://minikube-volume:/data/upload/minikube
 minikube mount [directory-on-host]:/data/upload/minikube
@@ -293,7 +311,9 @@ kubectl get node
 kubectl describe node [node-name]
 
 # Apply the yml
-kubectl apply -f devops-volume-local.yml
+kubectl apply -f devops-volume-local-docker-desktop.yml
+Postman: Volume -> upload image, upload doc and check
+curl -v http://localhost:9011/devops/blue/api/images
 
 # Find the pod name on namespace 'devops'
 kubectl get pod -n devops

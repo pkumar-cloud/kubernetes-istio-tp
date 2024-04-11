@@ -20,7 +20,7 @@ spec:
   accessModes:
   - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: default-storageclass  # A
+  storageClassName: default-storageclass  # A. what kind of storage to be provisioned.
   hostPath:                               # testing only, supported byminikube out-of-the-box
     path: /data/upload/minikube           # https://minikube.sigs.k8s.io/docs/handbook/persistent_volumes/
 
@@ -34,7 +34,7 @@ metadata:
 spec:
   accessModes:
   - ReadWriteOnce
-  storageClassName: default-storageclass  # A
+  storageClassName: default-storageclass  # A. To link the claim, we use same storage class name.
   resources:
     requests:
       storage: 100M

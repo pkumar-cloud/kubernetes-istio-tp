@@ -34,11 +34,11 @@ spec:
   local:
     # path: /usr/share/k8s-local-volume/image              # Linux / Mac, use linux-style path
     path: /run/desktop/mnt/host/d/k8s-local-volume/image   # Windows, use this syntax to mount at folder d:/k8s-local-volume/image
-  nodeAffinity:
+  nodeAffinity: #mandatory for local storage
     required:
       nodeSelectorTerms:
       - matchExpressions:
-        - key: kubernetes.io/hostname
+        - key: kubernetes.io/hostname  #docker-desktop node label
           operator: In
           values:
           - docker-desktop    # selector need to be changed based on `kubectl describe node`, and value on matching label 
