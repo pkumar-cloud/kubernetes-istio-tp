@@ -7,6 +7,7 @@ metadata:
     app.kubernetes.io/name: devops-ingress-nginx
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$1 #rewriting the URL using first capture group, which in this sample configuration is any character that comes after the-blue or the-yellow.
+    #In simpler word, this configuration will remove the-blue or the-yellow prefix received by backend.
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "8"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "8"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "8"

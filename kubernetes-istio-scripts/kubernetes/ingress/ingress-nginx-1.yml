@@ -5,9 +5,9 @@ metadata:
   name: devops-ingress-nginx
   labels:
     app.kubernetes.io/name: devops-ingress-nginx
-  annotations: #This annotations can be different based on ingress controller we use.
-    nginx.ingress.kubernetes.io/service-upstream: "true" #This configuration will forward using existing path on spec.rules.http.paths
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "8" #timeout to be only 8 seconds
+  annotations: #By using annotation, we can modify nginx configuration. This annotations can be different based on ingress controller we use.
+    nginx.ingress.kubernetes.io/service-upstream: "true" #This configuration will forward using existing path on spec.rules.http.paths. the URL path from client will be forwarded as-is to service.
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "8" #timeout to be only 8 seconds. nginx default timeout is 1 minute
     nginx.ingress.kubernetes.io/proxy-send-timeout: "8"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "8"
 spec:

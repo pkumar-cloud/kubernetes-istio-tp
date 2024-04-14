@@ -332,8 +332,8 @@ kubectl exec -n devops [pod-name] -c alpine-linux -ti /bin/sh
 ## Configmap
 
 ```bash
-kubernetes-istio-scripts/kubernetes/configmap/devops-configmap.yml
-Postman -> Configmap
+kubectl apply -f kubernetes-istio-scripts/kubernetes/configmap/devops-configmap.yml
+Postman -> Configmap (copy the URL and launch in browser)
 
 # List configmap
 kubectl get configmap -n devops
@@ -344,7 +344,7 @@ kubectl get configmap -n devops -o yaml [configmap-name]
 # See configmap content (output as json)
 kubectl get configmap -n devops -o json [configmap-name]
 
-# Edit configmap content
+# Edit configmap content & test color change in browser
 kubectl edit configmap -n devops [configmap-name]
 
 # Restart deployment (re-create pod without downtime)
@@ -367,13 +367,13 @@ The filename will become configmap key, while file content become configmap valu
 # Basic syntax
 kubectl create configmap [configmap-name] -n devops --from-file=[path-to-file]
 
-# From single file
+# From single file, filename will become configmap key and file content become configmap value.
 kubectl create configmap configmap-file-single -n devops --from-file=configmap-source.yml
 
-# From multiple files sample (each filename will become one key)
+# From multiple files sample (each filename will become one key and each file content as respective value.)
 kubectl create configmap configmap-file-multi -n devops --from-file=configmap-source.json --from-file=configmap-source.properties --from-file=configmap-source.txt
 
-# From binary (e.g. image), the content will base64-encoded on configmap 
+# From binary (e.g. image), the content will be base64-encoded on configmap 
 kubectl create configmap configmap-file-binary -n devops --from-file=configmap-source.png
 
 # From folder (each filename will become one key)
@@ -406,7 +406,7 @@ kubectl rollout restart deployment -n devops [secret-name]
 ```bash
 # Use --from-literal [key]=[value]
 # Or  --from-literal=[key]=[value]
-kubectl create secret generic [secret-name] -n devops --from-literal key.literal.one="This is my secret value for first key" --from-literal key.literal.two="While this is the secret  value for second key"
+kubectl create secret generic [secret-name] -n devops --from-literal key.literal.one="This is my secret value for first key" --from-literal key.literal.two="While this is the secret  value for second key" #kubernetes will automatically encode them as base64.
 ```
 
 ### Creating secret from file
@@ -417,10 +417,10 @@ The filename will become secret key, while file content become secret value.
 # Basic syntax
 kubectl create secret [secret-name] -n devops --from-file=[path-to-file]
 
-# From single file
+# From single file. filename will become key and file content become value. kubernetes will automatically encode value as base64.
 kubectl create secret secret-file-single -n devops --from-file=secret-source.yml
 
-# From multiple files sample (each filename will become one key)
+# From multiple files sample (each filename will become one key and each file content as respective value)
 kubectl create secret secret-file-multi -n devops --from-file=secret-source.json --from-file=secret-source.properties --from-file=secret-source.txt
 
 # From binary (e.g. image), the content will base64-encoded on configmap 
@@ -433,21 +433,38 @@ kubectl create secret secret-folder -n devops --from-file=secret-sources
 
 ## Service
 - cd kubernetes-istio-scripts/kubernetes/service
-- Postman: Service or 
- - use CURL to hit API: http://localhost:8111/devops/blue/api/hello
+- Postman: Service or use CURL to hit API: http://localhost:8111/devops/blue/api/hello
 
-### NodePort
+### Load balancer
 
 ```bash
-# Expose nodeport on minikube
+kubectl apply -f deployment-service.yml
+kubectl apply -f service-loadbalancer.yml
+kubectl get svc -n devops
+kubectl get svc -n devops -o wide devops-blue-loadbalancer
+kubectl desc svc -n devops -o wide devops-blue-loadbalancer #will have two endpoints, which means this service will distribute traffic between two replicas.
+kubectl delete -f service-loadbalancer.yml
+```
+
+### NodePort
+```bash
+kubectl apply -f service-nodeport.yml
+# Expose nodeport on minikube. This will open random port
 minikube service -n devops devops-blue-nodeport --url
+use CURL or Postman
+curl -v http://localhost:<fromAbove>/devops/blue/api/hello
+kubectl delete -f service-nodeport.yml
 ```
 
 ### Cluster IP
-
 ```bash
+kubectl apply -f service-clusterip.yml
 # To hit the clusterip, create a kubectl proxy 
 kubectl proxy --port=8888 # open proxy at port 8888
+Postman -> ClusterIP
+curl -> need to tell the proxy, which namespace we want to access,the service name, and the port name which we define in service configuration.
+kubectl delete -f service-clusterip.yml
+
 ```
 
 # Ingress - Nginx Load Balancer
@@ -464,13 +481,29 @@ kubectl apply -f devops-ingress.yml
 ingress-nginx-1..4.yml
 kubectl apply -f ingress-nginx-1.yml
 kubectl get ingress -n devops
+kubectl desc ingress -n devops devops-ingress-nginx
 minikube addons enable ingress #enable the ingress add on
 minikube tunnel
-kubectl get pod -n ingress-nginx
+kubectl get pod -n ingress-nginx #controller pod
 kubectl get svc -n ingress-nginx
+- Postman -> Ingress - Nginx
 ```
-
-
+## Routing by Host
+- Add entry to hosts file as per slide#63,64 for blue & yellow (1st part)
+```bash
+cd kubernetes-istio-scripts/kubernetes/ingress
+kubectl apply -f ingress-nginx-3.yml
+- Postman -> Ingress - Nginx -> Echo Blue/Yellow3
+kubectl delete -f ingress-nginx-3.yml
+```
+- Add entry to hosts file as per slide#63,64 for blue & yellow (2nd part)
+```bash
+cd kubernetes-istio-scripts/kubernetes/ingress
+kubectl apply -f ingress-nginx-4.yml
+- Postman -> Ingress - Nginx -> Echo Blue/Yellow4
+kubectl delete -f ingress-nginx-4.yml
+kubectl delete -f devops-ingress.yml
+```
 ## Ingress Over TLS
 
 [Online self-signed SSL generator](https://regery.com/en/security/ssl-tools/self-signed-certificate-generator)
@@ -478,12 +511,11 @@ Or, use [OpenSSL](https://www.openssl.org/)
 - Self-signed certificate is not trusted by most apps, so if we use Postman or browser, we need to disable validation later. To generate self-signed certificate, we can use openssl, or online tools.
 
 ```bash
-# Create self signed cert for "api.devops.local" and download private key and crt file.
+Create self signed cert for "api.devops.local" using "regery.com" and download private key and crt file.
+kubectl create secret tls api-devops-local-cert --key [path-to-private-key-file] --cert [path-to-crt-file] # Will create secret with type TLS, will be used in ingress-nginx-tls.yml
 cd kubernetes-istio-scripts/kubernetes/ingress-tls
-Postman: Ingress - Nginx TLS
-# Generate K8s secret for TLS certificate, will create secret with type TLS
-kubectl create secret tls api-devops-local-cert --key [path-to-private-key-file] --cert [path-to-crt-file]
 kubectl apply -f ..
+Postman: Ingress - Nginx TLS # If you got SSL error, disable the verification, since we used free self signed certificate.
 ```
 
 ## Introducing Helm
@@ -494,6 +526,22 @@ kubectl apply -f ..
 
 
 ```bash
+#Install helm
+helm version
+helm repo list	
+help repo add <Name> <RepoURL>
+helm search <chartName>  #Searches in k8s helm repo. E.g. helm search jenkins
+helm uninstall <ReleaseName>
+
+#Install Jenkins from - [Artifact hub](https://artifacthub.io/)
+helm repo add jenkinsci https://charts.jenkins.io/ #add the repo to local
+helm repo list #Check repo exist
+helm install my-jenkins jenkinsci/jenkins --version 5.1.5 #Install release “my-jenkins” with all the required resources 
+kubectl get po
+helm list --all-namespaces	 # List all the releases
+#Follow the onscreen instructions and launch Jenkins 
+helm uninstall my-jenkins
+
 # Install nginx ingress controller using helm
 # disable minikube addon first
 minikube addons disable ingress
@@ -501,6 +549,7 @@ minikube addons disable ingress
 helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace
 minikube tunnel 
 kubectl get po -n ingress-nginx
+kubectl get svc -n ingress-nginx
 ```
 
 
@@ -515,36 +564,37 @@ To extract tar.gz file on Windows, use tools like [7zip](https://www.7-zip.org/)
 
 ### Syntax
  ```bash
-# Install sealed secret via helm on K8S cluster
+# Install sealed secret controller via helm on K8S cluster
 helm upgrade --install sealed-secrets sealed-secrets --set-string fullnameOverride=sealed-secrets-controller --repo https://bitnami-labs.github.io/sealed-secrets --namespace kube-system
 
 # Download kubeseal from above bitnami github link and go to dir
 cd kubeseal
-copy the my-config-file.yml file here 
+copy the ../sealed-secret/my-config-file.yml file here 
 
 # Create secret, output it only at terminal (not upload to kubernetes cluster)
 kubectl create secret generic my-secret -n devops -o yaml --dry-run=client --from-file [path to my-config-file.yml]  => Save it as my-secret-file.yml file
 
-# Port forward the sealed secret service to port 8899
-kubectl port-forward -n kube-system service/sealed-secrets-controller 8899:8080
-
-# Download public certificate
+# Download public certificate from kubeseal controller 
+kubectl get svc -n kube-system
 kubeseal --controller-name=sealed-secrets-controller --controller-namespace=kube-system --fetch-cert > mycert.pem
 
-# Seal the secret using kubeseal
+# Seal the secret using kubeseal (using the public cert downloaded above)
 kubeseal -flag < [path-to-input-secret-file] > [path-to-output-sealed-secret-file]
-
 # Example, output is yml file format, using mycert.pem public certificate
 kubeseal --cert mycert.pem -o yaml < my-secret-file.yml > my-sealed-secret-file.yml
 
 # Apply the sealed secret
 kubectl apply -f my-sealed-secret-file.yml #only way to read the secret using k8s secret now
+kubectl get secret -n devops -o json my-secret # will get base64 encoded value. if we take the data, and decode it, we will get the plain text value
 
-kubectl get secret -n devops -o json my-secret # will get base64 encoded value
+#Deploy the app
+kubectl apply -f ../sealed-secret/devops-sealed-secret.yml
+PostMan: Configmap / Secret -> Sealed secret #Launch the URL in browser to read the secrtet 
 
-PostMan: Configmap / Secret -> Sealed secret
+# Port forward the sealed secret service to port 8899
+kubectl port-forward -n kube-system service/sealed-secrets-controller 8899:8080
+
  ```
-
 
 ## Resource Monitoring - Metrics Server
 
