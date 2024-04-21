@@ -748,20 +748,23 @@ kubectl apply -f ingress-combination-deployment.yml
 # 3. create the ingress, we separate blue and yellow ingress, despite both on same host. because we will have different configuration for each.
 kubectl apply -f ingress-combination-ingress.yml
 
-Use Postman -> Ingress - Combination #Run the Blue (with 50 request, would fail as restrited to receive 30 requests) & Yellow API (will redirect to Goodle. Allow Automatic redirection in Postman settings). 
+Use Postman -> Ingress - Combination #Run the Blue API (with 50 request, would fail as restrited to receive 30 requests) & Yellow API (will redirect to Goodle. Allow Automatic redirection in Postman settings). 
 
 # 4. Tunneling
 # Access via localhost/grafana    localhost/prometheus
 minikube tunnel
 
-# 5. Apply nginx config for request / response custom header
+# 5. Apply nginx config for adding custom request / response headers. To do this, we need to define configmap containing the headers.
 kubectl apply -f ingress-combination-nginx-configmap-headers.yml
-kubectl apply -f ingress-combination-nginx-configmap-config.yml
+kubectl apply -f ingress-combination-nginx-configmap-config.yml # Confifure nginx controller using created request/response config maps. 
 
-# 6. restart nginx
-kubectl rollout restart deployment -n ingress-nginx my-ingress-nginx-controller
+# 6. restart nginx controller to get the request/response headres added, as there is limitation in nginx that added headers will not be automatically effective.
+kubectl get deploy -n ingress-nginx 
+kubectl rollout restart deployment -n ingress-nginx my-ingress-nginx-controller #Will create new pod with updated configuration, and terminate old one.
+kubectl get pod -n ingress-nginx
+Use Postman -> Ingress - Combination #Run the Blue API, will see TWO new added request/response headres
 
-
+#Delete later -------
 # Monitoring - 1. Enable metrics server
 minikube addons enable metrics-server
 
@@ -773,6 +776,7 @@ helm upgrade my-ingress-nginx ingress-nginx --repo https://kubernetes.github.io/
 
 # Monitoring - 4. Upgrade kube-prometheus installation
 helm upgrade my-kube-prometheus-stack kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts --namespace monitoring --values values-kube-prometheus.yml
+#Delete later -------
 ```
 
 ## Autoscaling
@@ -788,7 +792,7 @@ kubectl apply -f devops-autoscaling.yml
 # Apply Horizontal Pod Autoscaler (HPA)
 kubectl apply -f devops-hpa.yml
 
-# Examine HPA (migh take times for metric update)
+# Examine HPA (might take times for metric update)
 kubectl get hpa -n devops
 
 Postman -> Autoscaling #Run this endpoint with 1 CPU thread for 600 second.

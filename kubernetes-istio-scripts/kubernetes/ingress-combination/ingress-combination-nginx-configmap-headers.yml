@@ -3,8 +3,8 @@ kind: ConfigMap
 metadata:
   name: nginx-custom-request-headers    # A
   namespace: ingress-nginx
-data:
-  Nginx-Request-Time: $time_iso8601
+data: #custom request header
+  Nginx-Request-Time: $time_iso8601 # nginx variable thus marked with dollar sign
   Nginx-Source: devops-course
   Nginx-More-Request-Header: just-sample-dummy-header
 
@@ -17,4 +17,4 @@ metadata:
   namespace: ingress-nginx
 data:
   Nginx-Response-Time: $time_iso8601
-  Nginx-Version: $nginx_version 
+  Nginx-Version: $nginx_version # nginx variable thus marked with dollar sign
