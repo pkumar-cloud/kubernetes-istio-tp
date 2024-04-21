@@ -2,7 +2,7 @@ grafana:
   adminPassword: changeme
   ingress:
     enabled: true
-    ingressClassName: nginx
+    ingressClassName: nginx #Promethus stack will create ingress rule with below specs
     annotations: 
       ingress.kubernetes.io/rewrite-target: /
     path: /grafana

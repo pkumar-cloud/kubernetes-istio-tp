@@ -621,7 +621,7 @@ kubectl apply -f devops-monitoring.yml
 
 # There are two monitors available from metrics server.
 kubectl top node
-kubectl top pod
+kubectl top pod -n devops
 
 # use Postman to simulate fake load
 Monitoring -> Fake load for 60 sec
@@ -646,7 +646,7 @@ minikube addons enable ingress
 cd kubernetes-istio-scripts/kubernetes/monitoring-kube-prometheus
 kubectl apply -f devops-monitoring.yml
 
-helm upgrade --install my-kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts kube-prometheus-stack --namespace monitoring --create-namespace --values values-monitoring.yaml
+helm upgrade --install my-kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts kube-prometheus-stack --namespace monitoring --create-namespace --values values-monitoring.yaml #using custom values.yaml file
 
 kubectl get po -n monitoring
 
@@ -672,7 +672,7 @@ kubectl delete -f devops-monitoring.yml #to start fresh next section
 ```
 
 ## Monitoring Nginx (Ingress) via Prometheus
-
+**NOTE : Kube prometheus stack might not works on local kubernetes (like minikube)**
 ```bash
 # Fresh start - delete minikube cluster
 minikube delete
@@ -686,26 +686,25 @@ minikube addons disable ingress
 # 2. Enable metrics server
 minikube addons enable metrics-server
 
-# 3. Install nginx ingress controller using helm
-helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace
-
-# 4. Install kube-prometheus-stack using helm
-helm upgrade --install my-kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts kube-prometheus-stack --namespace monitoring --create-namespace
-
-# 5. Upgrade nginx installation. Run on folder monitoring-ingress-nginx
+# 3. Install/upgrade nginx ingress controller using helm
 cd kubernetes-istio-scripts/kubernetes/monitoring-ingress-nginx
-#Values-ingress-nginx is nginx configuration. We will re-configure the nginx installation using this configuration.
-helm upgrade ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --values values-ingress-nginx.yml
+
+helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace --values values-ingress-nginx.yaml #Configure Ingress using custom values.yaml file
 
 # Optional : Check that nginx configured
 helm get values ingress-nginx --namespace ingress-nginx
 
+# 4. Install/upgrade kube-prometheus-stack using helm
+helm upgrade --install my-kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts kube-prometheus-stack --namespace monitoring --create-namespace --values values-kube-prometheus.yml #re-configure the kube-prometheus stack using yaml configuration file
+# Optional : Check that prometheus is configured
+helm get values my-kube-prometheus-stack --namespace monitoring
+
+#5,6 are Not required if #3 & #4 is done. 
+# 5. Values-ingress-nginx is nginx configuration. We will re-configure the nginx installation using this configuration.
+helm upgrade ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --values values-ingress-nginx.yml
 # 6. Upgrade kube-prometheus installation. Run on folder monitoring-ingress-nginx
 #values-kube-prometheus yaml is for kube-prometheus-stack configuration. We will re-configure the prometheus using this configuration. This will create ingress rules for prometheus and grafana so we can see them without using port forward.
 helm upgrade my-kube-prometheus-stack kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts --namespace monitoring --values values-kube-prometheus.yml
-
-# Optional : Check that prometheus is configured
-helm get values my-kube-prometheus-stack --namespace monitoring
 
 # 7. Apply the deployment sample
 kubectl apply -f devops-monitoring.yml
@@ -735,7 +734,9 @@ minikube delete
 # Fresh start - restart using workaround to enable resource monitor
 minikube start --extra-config=kubelet.housekeeping-interval=10s
 
-# Generate K8s secret for TLS certificate
+cd ingress-combination
+
+# Generate K8s secret for TLS certificate. Follow from last exercise. 
 kubectl create secret tls api-devops-local-cert -n devops --key [path-to-key-file] --cert [path-to-crt-file]
 
 # 1. Install nginx ingress controller using helm
@@ -744,8 +745,10 @@ helm upgrade --install my-ingress-nginx ingress-nginx --repo https://kubernetes.
 # 2. Apply the deployment sample
 kubectl apply -f ingress-combination-deployment.yml
 
-# 3. Apply ingress
+# 3. create the ingress, we separate blue and yellow ingress, despite both on same host. because we will have different configuration for each.
 kubectl apply -f ingress-combination-ingress.yml
+
+Use Postman -> Ingress - Combination #Run the Blue (with 50 request, would fail as restrited to receive 30 requests) & Yellow API (will redirect to Goodle. Allow Automatic redirection in Postman settings). 
 
 # 4. Tunneling
 # Access via localhost/grafana    localhost/prometheus

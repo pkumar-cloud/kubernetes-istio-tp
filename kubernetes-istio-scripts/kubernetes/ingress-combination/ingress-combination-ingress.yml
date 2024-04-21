@@ -5,7 +5,7 @@ metadata:
   name: ingress-combination-nginx-blue
   labels:
     app.kubernetes.io/name: ingress-combination-nginx-blue
-  annotations: #We can add annotation on ingress to further configure ingress.
+  annotations: #We can add annotation on ingress to further configure ingress. nginx configuration only done from metadata labels.
     # https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations
     nginx.ingress.kubernetes.io/limit-rpm: "30" #rate limit, allows only 30 traffic per minute
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
@@ -39,7 +39,7 @@ metadata:
     app.kubernetes.io/name: ingress-combination-nginx-yellow
   annotations:
     # https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations
-    nginx.ingress.kubernetes.io/temporal-redirect: https://www.google.com #all traffic to yellow, into google
+    nginx.ingress.kubernetes.io/temporal-redirect: https://www.google.com #redirect all traffic to yellow, into google
 spec:
   ingressClassName: nginx
   tls:

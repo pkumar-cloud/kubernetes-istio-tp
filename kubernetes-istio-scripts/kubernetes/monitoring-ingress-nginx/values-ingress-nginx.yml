@@ -1,3 +1,4 @@
+#It is is nginx configuration. We will re-configure the nginx installation using this configuration.
 controller:
   metrics-per-host: false
 
@@ -13,7 +14,7 @@ controller:
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 65
 
-  # monitoring
+  # monitoring, to enable the monitoring integration with kube prometheus stack
   metrics:
     enabled: true
 

@@ -1,3 +1,5 @@
+# It is for kube-prometheus-stack configuration. We will re-configure the prometheus using this configuration.
+# This will create ingress rules for prometheus and grafana so we can see them without using port forward.
 grafana:
   adminPassword: changeme
   ingress:
