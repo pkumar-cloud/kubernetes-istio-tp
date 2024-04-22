@@ -47,8 +47,8 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 5
           failureThreshold: 4
-      imagePullSecrets:
-        - name: dockerhub-secret
+      imagePullSecrets: 
+        - name: dockerhub-secret #Dockerhub secret created manually via command
   replicas: 1
 
 ---

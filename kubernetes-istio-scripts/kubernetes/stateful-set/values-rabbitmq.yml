@@ -3,7 +3,7 @@ replicaCount: 2
 
 auth:
   username: admin
-  existingPasswordSecret: devops-rabbitmq-secret
+  existingPasswordSecret: devops-rabbitmq-secret #exisiting secrets we have created, the password is string "password"
   existingErlangSecret: devops-rabbitmq-secret  
 
 resources:
@@ -20,8 +20,8 @@ ingress:
   hostname: rabbitmq.local
   path: /rabbitmq
 
-extraConfiguration: |-
-  management.path_prefix = /rabbitmq
+extraConfiguration: |- #as defined above
+  management.path_prefix = /rabbitmq 
 
 persistence:
   size: 1Gi

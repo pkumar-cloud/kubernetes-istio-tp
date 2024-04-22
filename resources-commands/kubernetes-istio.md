@@ -73,6 +73,18 @@
 ## Hello Kubernetes
 
 ```bash
+#Prep for future - Add to /etc/hosts file
+# DevOps
+127.0.0.1 	blue.devops. local
+127.0.0.1 	yellow.devops.local
+127.0.0.1 	api.devops.local
+127.0.0.1 	monitoring.devops.local
+127.0.0.1 	rabbitmq. local
+127.0.0.1 	argocd. local
+127.0.0.1 	chartmuseum.local
+127.0.0.1 	kiali.local
+127.0.0.1 	jaeger.local
+
 # Create deployment
 kubectl create deployment my-nginx --image nginx:stable
 
@@ -803,21 +815,35 @@ Postman -> Autoscaling #Run this endpoint with 1 CPU thread for 600 second.
 ```bash
 cd kubernetes-istio-scripts/kubernetes/stateful-set
 kubectl apply -f devops-deployment.yml
-kubectl get po,pv,pvc -n devops #verify 
+kubectl get po,pv,pvc -n devops #verify all, all are provisioned together, like diagram in notes. 
 kubectl delete -f devops-deployment.yml
 
 kubectl apply -f devops-stateful-set.yml
-kubectl get po,pv,pvc -n devops #verify - only one pod will be created at a time.
+kubectl get po,pv,pvc -n devops #verify - only one pod will be created at a time. When pod with lowest index is ready, then the next index will be created.
 
 # to access statefulset via ingress
 kubectl apply -f devops-stateful-set-ingress.yml
 
-Postman -> Stateful set
+Postman -> Stateful set -> Ingress
 
-Alternate:
+#Alternate way to access satefulset, open three ports for each POD to access them directly:
 kubectl port-forward -n devops devops-stateful-set-main-0 9110:8111
 kubectl port-forward -n devops devops-stateful-set-main-1 9111:8111
 kubectl port-forward -n devops devops-stateful-set-main-2 9112:8111
+Postman -> Stateful set -> Upload Pod0..3 #Upload files from each API
+Postman -> Stateful set -> List Pod0..3 #Retrives same image
+
+#Scale down to 1 replica and test
+kubectl apply -f devops-stateful-set.yml
+
+#extreme, stop and then restart minikube.
+minikube stop
+minikube start
+minikube tunnel
+#Scale up back to 3 replica and test
+kubectl apply -f devops-stateful-set.yml
+Port Forward and Postman -> List as above
+#we can see, each pod will maintain same volume, and image list will be the same with the one we got before scaling down.
 ```
 
 ## Stateful Set on Practice
@@ -825,22 +851,23 @@ kubectl port-forward -n devops devops-stateful-set-main-2 9112:8111
 ```bash
 kubectl apply -f devops-rabbitmq.yml #have secret, contains password which is required to config rabbitmq
 #from artifacthub.io
-add rabbitmq.local to /etc/hosts
+add rabbitmq.local to /etc/hosts  # As defined in values.yaml
 helm upgrade --install my-rabbitmq rabbitmq --repo https://charts.bitnami.com/bitnami  --namespace rabbitmq --create-namespace --values values-rabbitmq.yml
 ```
 
 The URL is **http://rabbitmq.local/rabbitmq/** (it has **/** at the end)
 - Launch: rabbitmq.local/rabbitmq -> admin/password
-- Create a dummy queue of type Quorum, to replicate data across rabbitmq instances
-- publish 10 data to the queue, using publish message
-- Access each POD using below ports e.g. http://localhost:9220/rabbitmq/ #can see have 10 messages each 
-- change replica values-rabbitmq.yml and redploy release and verify data consistency
-
+- Create a dummy queue of type "Quorum", to replicate data across rabbitmq instances
+- publish 10 data to the queue, using "Publish message"
+- port forward using below commands
 ```bash
 kubectl port-forward -n rabbitmq my-rabbitmq-0 9220:15672
 kubectl port-forward -n rabbitmq my-rabbitmq-1 9221:15672
 kubectl port-forward -n rabbitmq my-rabbitmq-2 9222:15672
-
+```
+- Access each POD using below ports e.g. http://localhost:9220/rabbitmq/ #can see have 10 messages each 
+- change replicacount to 1 or 2 in values-rabbitmq.yml and redploy release and verify data consistency, Data is replicated thus avaliable in each POD's persistence volume
+```bash
 helm upgrade --install my-rabbitmq rabbitmq --repo https://charts.bitnami.com/bitnami  --namespace rabbitmq --create-namespace --values values-rabbitmq.yml
 ```
 
@@ -854,7 +881,6 @@ kubectl apply -f devops-blue-invalid-three.yml #error, where the volume is not b
 
 ```
 
-
 ## Namespace Quota
 [ResourceQuota reference](https://kubernetes.io/docs/concepts/policy/resource-quotas/)
 ```bash
@@ -863,13 +889,23 @@ kubectl apply -f devops-resourcequota.yml #apply namespace quota
 kubectl apply -f devops-deployment.yml #only 4 pods will come up
 kubectl get resourcequota -n devops #see the resource limits of NS
 kubectl describe resourcequota -n devops <ResourceQuotaName>
-kubectl apply -f devops-pod.yml #error
+kubectl apply -f devops-pod.yml # will throw error
+kubectl apply -f devops-configmap.yml # will create 3 and 1 default was created by K8S
+kubectl apply -f devops-configmap-four.yml # will throw limit error
 
 ```
 ## Service Account
 ```bash
 cd kubernetes-istio-scripts/kubernetes/service-account
-
+kubectl apply -f devops-default-sa.yml #will create devops namespace and deploy one blue pod.
+kubectl get serviceaccount -n devops #will have one service account called as default
+kubectl describe serviceaccount -n devops default
+#The pod specification will uses this default service account.
+kubectl get po -n devops
+kubectl describe po <PodName> -n devops #Check "ServiceAccountName"
+kubectl delete -f devops-default-sa.yml
+kubectl apply -f devops-service-account.yml #will create devops namespace and deploy one blue pod with user defined SA.
+kubectl get serviceaccount -n devops #will have one custom service account + default
 ```
 ## security-context
 ```bash
@@ -883,6 +919,7 @@ Postman -> Security Context
 kubectl create ns devops
 # Create secret for dockerhub. Unlike regular secret, docker credential requires specific type and data to be used.
 kubectl create secret docker-registry dockerhub-secret --docker-server=https://index.docker.io/v1/ --docker-username=[your-username] --docker-password=[your-password] --docker-email=[your-email]
+kubectl get secret -n devops
 cd kubernetes-istio-scripts/kubernetes/private-repository
 kubectl apply -f 
 Postman -> Private Repository

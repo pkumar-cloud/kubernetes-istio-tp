@@ -16,7 +16,7 @@ spec:
   accessModes:
   - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: standard #it is dynamic provisioning storage i.e. a volume will be created when needed, without we explicitly define it.
+  storageClassName: standard #it is dynamic provisioning storage i.e. a volume will be created when needed, without we explicitly define it. It is supported by Minikube. 
   hostPath:
     path: /data/statefulset/pv-a
   nodeAffinity:
@@ -54,7 +54,7 @@ spec:
           - minikube
 
 ---
-
+#headless service
 apiVersion: v1
 kind: Service
 metadata:
@@ -63,7 +63,7 @@ metadata:
   labels:
     app.kubernetes.io/name: devops-stateful-set
 spec:
-  clusterIP: None     # Create headless service. will be used to provide the network identity for stateful pods.
+  clusterIP: None  #Create headless service, where it does not has even cluster IP. It will be used to provide the network identity for stateful pods.
   selector:
     app.kubernetes.io/name: devops-stateful-set-pod
   ports:
@@ -134,5 +134,5 @@ spec:
         accessModes:
         - ReadWriteOnce
   replicas: 3
-  #we have three replicas, while we only define two persistent volume. 
-  # Since standard storage class can dynamically provision volume a new persistent volume will be automatically created for third replica.
+  #Note: we have three replicas, while we only define two persistent volume. 
+  #Since standard storage class can dynamically provision volume a new persistent volume will be automatically created for third replica.
