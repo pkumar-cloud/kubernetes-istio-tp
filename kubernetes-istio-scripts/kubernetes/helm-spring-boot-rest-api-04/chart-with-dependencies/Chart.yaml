@@ -6,7 +6,7 @@ type: application
 version: 1.0.0
 appVersion: "1.0.0"
 
-# declare dependencies here
+# declare dependencies on two charts
 dependencies:
   - name: spring-boot-rest-api
     version: 0.1.0

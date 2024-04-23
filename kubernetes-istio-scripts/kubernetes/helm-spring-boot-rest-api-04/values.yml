@@ -1,3 +1,4 @@
+# Note root elements : spring-boot-rest-api. which indicates the key below is for injection on spring rest api chart.
 spring-boot-rest-api:
   image:
     repository: timpamungkas/devops-blue

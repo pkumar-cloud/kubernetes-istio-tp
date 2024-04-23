@@ -1,14 +1,14 @@
 env:
   open:
-    STORAGE: local
+    STORAGE: local #will use local storage, enable chartmuseum API
     DISABLE_API: false
     CONTEXT_PATH: chartmuseum
   existingSecret: chartmuseum-credential
-  existingSecretMappings:
+  existingSecretMappings: #securing the chartmuseum using username and password
     BASIC_AUTH_USER: chartmuseum-username
     BASIC_AUTH_PASS: chartmuseum-password
 
-persistence:
+persistence: #local storage will be persisted using this configuration
   enabled: true
   accessMode: ReadWriteOnce
   size: 100Mi
@@ -21,7 +21,7 @@ resources:
     cpu: 250m
     memory: 256Mi
 
-ingress:
+ingress: #will enable ingress, using nginx with chartmuseum as path.
   enabled: "true"
   ingressClassName: nginx
   pathType: Prefix

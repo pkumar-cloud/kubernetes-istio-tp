@@ -932,65 +932,103 @@ Postman -> Private Repository
 [Go template language](https://pkg.go.dev/text/template)
 
 ```bash
-# Run these on folder helm-charts
+helm create spring-boot-rest-api #Create our own helm-charts
+#This creates standrad folder and templates which can be used as-is in most of the cases, we just need values.yaml file to populate or override the standard templates as below. 
 
-# [Optional] Render helm template
-helm template helm-yellow-01 spring-boot-rest-api --namespace devops --create-namespace --values ..\kubernetes\helm-spring-boot-rest-api-01\values-spring-boot.yml
+# [Optional] Render helm template, which will renders the template using values file, but not execute it. To check whether our template will works as expected.
+helm template helm-yellow-01 spring-boot-rest-api --namespace devops --create-namespace --values ..\kubernetes\helm-spring-boot-rest-api-01\values-spring-boot.yml #It will render the template, with values from values-spring-boot.yml file
+
+#OR Alternatively, can generate all the files into some directory
+helm template helm-yellow-01 spring-boot-rest-api --namespace devops --create-namespace --values ..\kubernetes\helm-spring-boot-rest-api-01\values-spring-boot.yml --output-dir d:/helm-template
+
+#Simulate installaltion w/o actually applying the conf file
+#run the dry-run on deployment file result from helm template folder above
+kubectl apply -f --dry-run-client deployment.yaml
 
 # Install helm release
 helm upgrade --install helm-yellow-01 spring-boot-rest-api --namespace devops --create-namespace --values ..\kubernetes\helm-spring-boot-rest-api-01\values-spring-boot.yml
 
 #list helm
 helm list -n devops
-Postman: Helm - Spring Boot REST API
-helm uninstall -n devops helm-yellow-01
+Postman: Helm - Spring Boot REST API -> run Yellow 01 for both the pods
+helm uninstall -n devops helm-yellow-01 #delet to start fresh
 ```
-
 
 ## Helm Chartmuseum (Spring Boot REST API 02)
  - [Artifact hub](https://artifacthub.io/packages/helm/chartmuseum/chartmuseum)
  - [Chartmuseum API List](https://github.com/helm/chartmuseum#api)
 
 ```bash
+cd kubernetes-istio-scripts/kubernetes/helm-chartmuseum
 # Create chartmuseum username & password using secret
 kubectl apply -f secret-chartmuseum.yml
 
 # Install chartmuseum on helm
 helm upgrade --install my-chartmuseum chartmuseum --repo https://chartmuseum.github.io/charts  --namespace chartmuseum --create-namespace --values values-chartmuseum.yml
+#make sure that chartmuseum.local is added to /etc/hosts file 
+Postman: Helm - Chartmuseum -> Test Authentication using above secrets
+#Once authentiated, we are ready to use Chartmuseum
 
-# Package chart as tgz to be uploaded
-helm package spring-boot-rest-api
+# Package chart as tgz to be uploaded into chartmuseum
+helm package spring-boot-rest-api #generates tar file
+Postman: Helm - Chartmuseum -> Upload (binary option)
+Postman: Helm - Chartmuseum -> List all charts #if lists then ready to use 
 
 # Create release spring-boot-rest-api from local chartmuseum, use chart version 0.1.0
-helm upgrade --install helm-yellow-02 spring-boot-rest-api --repo http://chartmuseum.local/chartmuseum --username chartmuseum --password password --namespace devops --create-namespace --version 0.1.0 --values values-spring-boot.yml
+helm upgrade --install helm-yellow-02 spring-boot-rest-api --repo http://chartmuseum.local/chartmuseum --username chartmuseum --password password --namespace devops --create-namespace --version 0.1.0 --values kubernetes-istio-scripts/kubernetes/helm-spring-boot-rest-api-02/values-spring-boot.yml
+Postman: Helm - Spring Boot REST API -> run Yellow 02
+helm uninstall -n devops helm-yellow-02 #delet to start fresh
 ```
 
-## Helm Spring Boot Rest API 03
+## Helm Spring Boot Rest API 03 (Multiple configuration)
 
 ```bash
-# Install helm release (values.yml + values-dev.yml)
+# Install helm release (values.yml + values-dev.yml) If there is same key on multiple values yaml file, the rightmost file will get priority.
 helm upgrade --install helm-blue-03 spring-boot-rest-api --repo http://chartmuseum.local/chartmuseum --username chartmuseum --password password --namespace devops --create-namespace --version 0.1.0 --values values.yml --values values-dev.yml 
+Postman: Helm - Spring Boot REST API -> run Yellow 03
 
 # Install helm release (values.yml + values-prod.yml)
 helm upgrade --install helm-blue-03 spring-boot-rest-api --repo http://chartmuseum.local/chartmuseum --username chartmuseum --password password --namespace devops --create-namespace --version 0.1.0 --values values.yml --values values-prod.yml 
+
+helm uninstall -n devops helm-yellow-03 #delet to start fresh
 ```
 
 
 ## Helm Github As Repository (Spring Boot REST API 03)
 
 ```bash
+- Create github repo: devops-helm-charts
+- Create "gh-pages" branch from main. On the github settings, enable github pages with gh-pages branch as source, from this page URL link will be used as helm repository url.
+git clone <aboveRepo> & Create charts folder in it.
+- Copy our csutom chart folder "spring-boot-rest-api" under "charts" folder
+- To automate chart release as repository, we need to add github action. github action is automation pipeline from github. We will use helm official action to publish chart.
+- Create ".github" along with "subfolder" workflows under "devops-helm-charts". Add "helm-release.yml" file in this folder.
+- Google search: github actions marketplace -> search "helm chart releaser"
+- From the documentation, copy the content of github action configuration into helm-release.yml.
+git add .
+git commit -m "added chart releaser"
+git push #under main branch
+- When we push this file, github action will be triggered. Check the status from "Actions" menu. Make sure all jobs runs well.
+- Then if we check the gh-pages branch, we will has "index.yaml" file there. This file is automatically generated by github action. it will have list of helm charts on this repository.
+
+#Install release using github as helm repository, not chartmuseum.
 helm upgrade --install helm-blue-03-github spring-boot-rest-api --repo https://[username].github.io/[repository-name]/ --namespace devops --create-namespace --version 0.1.0 --values values.yml --values values-dev.yml 
+helm uninstall -n devops helm-blue-03-github #delet to start fresh
 ```
 
 
 ## Multiple Helm Charts (Spring Boot REST API 04)
-
 ```bash
+cd helm-spring-boot-rest-api-04/chart-with-dependencies
+- Define dependencies in Chart.yaml file under chart-with-dependencies
 # Update chart dependencies (run on folder which contains Chart.yaml)
-helm dependency update
+helm dependency update #This will download required dependencies.
 
 # Run chart with dependencies (run on folder which contains values.yml and values-dev.yml)
+cd.. 
 helm upgrade --install helm-blue-04 chart-with-dependencies --namespace devops --create-namespace --values values.yml --values values-dev.yml 
+kubectl get po -n devops #will have spring boot pod, and redis pod
+helm uninstall -n devops helm-blue-04 #delet to start fresh
 ```
 
 

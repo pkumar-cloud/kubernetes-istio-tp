@@ -18,14 +18,15 @@ health:
     port: 8112
     path: /devops/yellow/actuator/health/readiness
 
-# Mind the | which indicates this is raw string
+# Mind the | which indicates this is raw string. Two extra volume mounts for uploading image and document.
+# Since we use tpl function on the deployment template file, we use pipe character to define raw string to be embedded on the deployment yaml file.
 extraVolumeMounts: |
   - name: upload-image-empty-dir
     mountPath: /upload/image
   - name: upload-doc-empty-dir
     mountPath: /upload/doc
 
-# Mind the | which indicates this is raw string
+# Mind the | which indicates this is raw string. will be appended as extra volume on deployment
 extraVolumes: |
   - name: upload-image-empty-dir
     emptyDir: {}
@@ -46,11 +47,11 @@ autoscaling:
   maxReplicas: 4
 
 # -------------------------------------------------------
-# For ingress
+# For ingress. enable ingress, using nginx
 ingress:
   enabled: "true"
   ingressClassName: nginx
-  annotations: 
+  annotations:  #custom annotation for rate limiting
     nginx.ingress.kubernetes.io/limit-rpm: "30"
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
   hosts:
